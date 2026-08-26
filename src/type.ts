@@ -2,7 +2,7 @@ import type { HtmlTagDescriptor } from "vite";
 
 export type Filter = (RegExp | string)[] | RegExp | string | ((filename: string) => boolean);
 
-export type Tag = Override<HtmlTagDescriptor, { injectTo: NonNullable<PriorScript["injectTo"]>; children?: string; }>;
+export type Tag = Override<HtmlTagDescriptor, { injectTo: NonNullable<PriorScript["injectTo"]>; children?: string }>;
 
 type Override<TSource, TOverrider> = Omit<TSource, keyof TOverrider> & TOverrider;
 
@@ -24,8 +24,15 @@ export interface PluginOptions {
 }
 
 export interface PriorScript {
-	/** Path to the script (js/ts/jsx/tsx). */
+	/**
+	 * Path to the script (js/ts/jsx/tsx/json).
+	 *
+	 * If `source` option is specified, it will not read the file from the `src` and just use its filename for
+	 * the output filename.
+	 */
 	src: string;
+	/** Override the script content string. */
+	source?: string;
 	/**
 	 * - `"classic" | "script"`: Classic script.
 	 * - `"module"`: JavaScript module.
@@ -35,14 +42,14 @@ export interface PriorScript {
 	 * - Others - Directly pass to the type attribute.
 	 * @default "classic"
 	 */
-	type?: "classic" | "script" | "module" | "iife" | "importmap" | "speculationrules" | string & {};
+	type?: "classic" | "script" | "module" | "iife" | "importmap" | "speculationrules" | (string & {});
 	/**
 	 * Select where to insert the script.
 	 * @default "head-append"
 	 */
 	injectTo?: "head-prepend" | "head-append" | "body-prepend" | "body-append";
 	/** Modify the source script content. */
-	modify?(html: string): string;
+	modify?(script: string): string;
 	/** Filter the HTML files to be injected with the script. */
 	filterHtml?: Filter;
 	/** Directly set the script innerText? */
@@ -50,7 +57,7 @@ export interface PriorScript {
 	/** The script will be fetched in parallel to parsing and evaluated as soon as it is available. */
 	async?: boolean;
 	/** Certain operations should be blocked on the fetching of the script. */
-	blocking?: ("render")[];
+	blocking?: "render"[];
 	/** Allow error logging for sites which use a separate domain for static media. */
 	crossOrigin?: "anonymous" | "use-credentials";
 	/** Indicate the script is meant to be executed after the document has been parsed, but before firing `DOMContentLoaded` event. */
@@ -64,7 +71,15 @@ export interface PriorScript {
 	/** A cryptographic nonce (number used once) to allow scripts in a script-src Content-Security-Policy. */
 	nonce?: boolean;
 	/** Indicate which referrer to send when fetching the script, or resources fetched by the script. */
-	referrerPolicy?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url";
+	referrerPolicy?:
+		| "no-referrer"
+		| "no-referrer-when-downgrade"
+		| "origin"
+		| "origin-when-cross-origin"
+		| "same-origin"
+		| "strict-origin"
+		| "strict-origin-when-cross-origin"
+		| "unsafe-url";
 	/** Any other custom attributes. */
 	[x: string]: any;
 }

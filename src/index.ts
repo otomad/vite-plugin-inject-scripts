@@ -14,7 +14,7 @@ export default ({
 	let config: ResolvedConfig;
 	const resolve = (...paths: string[]) => resolve_(config.root, ...paths);
 	let isDev: boolean;
-	let scripts: (PriorScript & { source: string; isJson: boolean })[];
+	let scripts: (PriorScript & { src?: string; source: string; isJson: boolean })[];
 	const filters: Filter[] = [];
 	const bundles = new Map<string, string>();
 
@@ -36,7 +36,7 @@ export default ({
 					["importmap", "speculationrules", "application/json", "text/json"].includes(script.type) ||
 					path.extname(script.src).toLowerCase() === ".json";
 
-				let source = readFileSync(resolve(script.src), "utf-8");
+				let source = script.source || readFileSync(resolve(script.src), "utf-8");
 				if (script.modify) source = script.modify(source);
 				if (script.type === "iife") source = wrapIife(source);
 				if (script.src.match(/\.[cm]?tsx?/i)) source = compileTypeScript(source);
