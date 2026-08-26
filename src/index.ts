@@ -15,7 +15,6 @@ export default ({
 	const resolve = (...paths: string[]) => resolve_(config.root, ...paths);
 	let isDev: boolean;
 	let scripts: (PriorScript & { src?: string; source: string; isJson: boolean })[];
-	const filters: Filter[] = [];
 	const bundles = new Map<string, string>();
 
 	return {
@@ -31,7 +30,6 @@ export default ({
 				script.src = script.src.trim();
 				script.type ??= "classic";
 				script.injectTo ??= "head-append";
-				if (script.filterHtml) filters.push(script.filterHtml);
 				const isJson =
 					["importmap", "speculationrules", "application/json", "text/json"].includes(script.type) ||
 					path.extname(script.src).toLowerCase() === ".json";
@@ -40,7 +38,10 @@ export default ({
 				if (script.modify) source = script.modify(source);
 				if (script.type === "iife") source = wrapIife(source);
 				if (script.src.match(/\.[cm]?tsx?/i)) source = compileTypeScript(source);
-				if (!isDev && !isJson) source = minifyJavaScript(source, "oxc");
+				if (!isDev) {
+					if (!isJson) source = minifyJavaScript(source, "oxc");
+					else source = JSON.stringify(JSON.parse(source)); // TODO: minify JSON.
+				}
 
 				return Object.assign(script, { source, isJson });
 			});
@@ -75,8 +76,6 @@ export default ({
 		transformIndexHtml: {
 			order: "post",
 			async handler(html, { filename, path }) {
-				if (!filterHtmlFilename(filename, filters as never)) return;
-
 				const tags = scripts
 					.map(script => {
 						const {
@@ -84,6 +83,7 @@ export default ({
 							type,
 							injectTo,
 							modify: _modify,
+							isJson: _isJson,
 							filterHtml,
 							inline,
 							blocking,
@@ -105,6 +105,9 @@ export default ({
 						return result;
 					})
 					.filter(Boolean);
+
+				if (tags.length === 0) return;
+
 				const group = Object.groupBy(tags, ({ injectTo }) => injectTo);
 
 				const dom = parseHTML(html);
@@ -116,7 +119,8 @@ export default ({
 					const script = document.createElement(tag.tag) as HTMLScriptElement;
 					if (tag.children) script.textContent = tag.children;
 					for (const [attr, value] of Object.entries(tag.attrs ?? {}))
-						if (value != null && value !== false) script.setAttribute(attr, value === true ? "" : value);
+						if (value != null && value !== false)
+							script.setAttribute(attr.toLowerCase(), value === true ? "" : value);
 					return script;
 				};
 				group["head-prepend"]?.toReversed().forEach(tag => document.head.prepend(createElement(tag)));
