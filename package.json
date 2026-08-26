@@ -13,20 +13,22 @@
 	"license": "MIT",
 	"author": "lunate",
 	"type": "module",
-	"main": "dist/index.js",
-	"module": "dist/index.js",
-	"types": "dist/index.d.ts",
+	"main": "dist/index.cjs",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.mts",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"module-sync": "./dist/index.js"
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.cjs"
 		}
 	},
 	"scripts": {
 		"test": "vitest",
 		"clear": "rimraf dist",
-		"build": "npm run clear && tsc --build && npm run fmt:dist",
+		"build": "npm run clear && npm run build:tsdown && npm run fmt:dist",
+		"build:tsc": "tsc --build",
+		"build:tsdown": "tsdown",
 		"fmt": "oxfmt",
 		"fmt:check": "oxfmt --check",
 		"fmt:dist": "oxfmt dist/"
@@ -35,6 +37,7 @@
 		"@types/node": "^26.3.0",
 		"oxfmt": "^0.59.0",
 		"rimraf": "^6.1.3",
+		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.10"
 	},
