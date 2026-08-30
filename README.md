@@ -108,8 +108,8 @@ Each script object accepts the following fields:
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `src` | `string` | — | Path to the script (`js` / `ts` / `jsx` / `tsx` / `json`), resolved from Vite's `root`. When `source` is set, the file is not read and `src` is only used to derive the output file name/extension. |
-| `source` | `string` | — | The script content. When set, it overrides the file read from `src`. |
+| `src` | `string` | — | Path to the script (`js` / `ts` / `jsx` / `tsx` / `json`), resolved from Vite's `root`.<br>When `source` is set, the file is not read and `src` is only used for the output file name/extension;<br>When `source` is set and `inline` is `true`, `src` is only checked for a `.json` extension to treat the content as JSON. |
+| `source` | `string` | — | Override the script content with an inline string.<br>**Not recommended** unless the code is very simple — prefer a separate file referenced by `src`, since inline content loses editor highlighting and autocompletion. |
 | `type` | `string` | `"classic"` | See [script types](#type). |
 | `injectTo` | `"head-prepend" \| "head-append" \| "body-prepend" \| "body-append"` | `"head-append"` | Where to insert the `<script>` tag. |
 | `modify` | `(code: string) => string` | — | Transform the source before it is compiled/minified. |
@@ -164,6 +164,26 @@ injectScripts({
 
 ## Examples
 
+### TypeScript source compiled on the fly
+
+```ts
+injectScripts({
+	scripts: [
+		{ src: "src/bootstrap.ts", type: "module" },
+	],
+});
+```
+
+### An IIFE with custom attributes
+
+```ts
+injectScripts({
+	scripts: [
+		{ src: "src/legacy.js", type: "iife", injectTo: "body-append", defer: true },
+	],
+});
+```
+
 ### Inline a config module before the app
 
 ```ts
@@ -180,16 +200,6 @@ injectScripts({
 });
 ```
 
-### TypeScript source compiled on the fly
-
-```ts
-injectScripts({
-	scripts: [
-		{ src: "src/bootstrap.ts", type: "module" },
-	],
-});
-```
-
 ### Import map
 
 ```ts
@@ -200,16 +210,6 @@ injectScripts({
 			source: JSON.stringify({ imports: { vue: "https://esm.sh/vue" } }),
 			type: "importmap",
 		},
-	],
-});
-```
-
-### An IIFE with custom attributes
-
-```ts
-injectScripts({
-	scripts: [
-		{ src: "src/legacy.js", type: "iife", injectTo: "body-append", defer: true },
 	],
 });
 ```
