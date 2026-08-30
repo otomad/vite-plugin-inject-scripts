@@ -15,7 +15,7 @@ export interface PluginOptions {
 	/**
 	 * Specify the entry js file name, or match the entry js file with a pattern or callback,
 	 * or select the last queried one by `true`.
-	 * @default "index.js"
+	 * @default true
 	 */
 	entryFile?: string | true | RegExp | ((jsFilePath: string) => boolean);
 	/**

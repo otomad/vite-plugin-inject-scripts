@@ -8,7 +8,7 @@ export type { PriorScript, PluginOptions };
 
 export default ({
 	scripts: scripts_,
-	entryFile = "index.js",
+	entryFile = true,
 	minifyHtml: shouldMinifyHtml = true,
 	minifyJS: shouldMinifyJS = true,
 	minifyCSS: shouldMinifyCSS = true,
