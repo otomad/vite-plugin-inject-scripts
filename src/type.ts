@@ -1,3 +1,4 @@
+import type { MinifyHTMLEngine, MinifyJavaScriptEngine, MinifyCSSEngine } from "js-build-utils";
 import type { HtmlTagDescriptor } from "vite";
 
 export type Filter = (RegExp | string)[] | RegExp | string | ((filename: string) => boolean);
@@ -18,20 +19,50 @@ export interface PluginOptions {
 	entryFile?: string;
 	/**
 	 * Minify HTML when building?
+	 *
+	 * Or choose your preferred HTML minification engine —
+	 * You have to manually install that engine other than the default engine `"terser"` (`html-minifier-terser`).
+	 *
 	 * @default true
 	 */
-	minifyHtml?: boolean;
+	minifyHtml?: boolean | MinifyHTMLEngine;
+	/**
+	 * Minify JavaScript when building?
+	 *
+	 * Or choose your preferred JavaScript minification engine —
+	 * You have to manually install that engine other than the default engine `"oxc"` (`oxc-minify`).
+	 *
+	 * @default true
+	 */
+	minifyJS?: boolean | MinifyJavaScriptEngine;
+	/**
+	 * Minify CSS when building?
+	 *
+	 * Or choose your preferred CSS minification engine —
+	 * You have to manually install that engine other than the default engine `"lightningcss"`.
+	 *
+	 * @default true
+	 */
+	minifyCSS?: boolean | MinifyCSSEngine;
 }
 
 export interface PriorScript {
 	/**
 	 * Path to the script (js/ts/jsx/tsx/json).
 	 *
-	 * If `source` option is specified, it will not read the file from the `src` and just use its filename for
+	 * If the `source` option is specified, it will not read the file from the `src` and just use its filename for
 	 * the output filename.
+	 * - Also, if the `source` option is specified and the `inline` option is set to `true`, it will only check if the
+	 *   extension of the `src` path is `.json` and treat it as a JSON file instead of a JavaScript file.
 	 */
 	src: string;
-	/** Override the script content string. */
+	/**
+	 * Override the script content string.
+	 *
+	 * Unless the code content is very simple, it is not recommended to use this option. Otherwise, the code
+	 * highlighting and completion list from the editor will be missing. It is recommended that you place the code
+	 * in a separate file and reference the path of that file in `src` option.
+	 */
 	source?: string;
 	/**
 	 * - `"classic" | "script"`: Classic script.

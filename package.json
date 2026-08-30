@@ -58,7 +58,7 @@
 	],
 	"dependencies": {
 		"html-minifier-terser": "^7.2.0",
-		"js-build-utils": "^1.1.1",
+		"js-build-utils": "^1.2.0",
 		"lightningcss": "^1.33.0",
 		"linkedom": "^0.18.13",
 		"oxc-minify": "^0.147.0"

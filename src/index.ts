@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path, { posix, resolve as resolve_ } from "node:path";
-import { compileTypeScript, minifyHtml, minifyJavaScript, wrapIife } from "js-build-utils";
+import { compileTypeScript, minifyHtml, minifyJavaScript, wrapIife, minifyJson } from "js-build-utils";
 import { parseHTML } from "linkedom";
 import type { Plugin, ResolvedConfig } from "vite";
 import type { Filter, PriorScript, Tag, PluginOptions } from "./type.js";
@@ -10,6 +10,8 @@ export default ({
 	scripts: scripts_,
 	entryFile = "index.js",
 	minifyHtml: shouldMinifyHtml = true,
+	minifyJS: shouldMinifyJS = true,
+	minifyCSS: shouldMinifyCSS = true,
 }: PluginOptions): Plugin => {
 	let config: ResolvedConfig;
 	const resolve = (...paths: string[]) => resolve_(config.root, ...paths);
@@ -39,8 +41,10 @@ export default ({
 				if (script.type === "iife") source = wrapIife(source);
 				if (script.src.match(/\.[cm]?tsx?/i)) source = compileTypeScript(source);
 				if (!isDev) {
-					if (!isJson) source = minifyJavaScript(source, "oxc");
-					else source = JSON.stringify(JSON.parse(source)); // TODO: minify JSON.
+					if (!isJson) {
+						if (shouldMinifyJS)
+							source = minifyJavaScript(source, shouldMinifyJS === true ? "oxc" : shouldMinifyJS);
+					} else source = minifyJson(source);
 				}
 
 				return Object.assign(script, { source, isJson });
@@ -134,7 +138,11 @@ export default ({
 
 				let newHtml = dom.document.toString();
 				if (shouldMinifyHtml)
-					newHtml = await minifyHtml(newHtml, { html: "terser", js: "oxc", css: "lightningcss" });
+					newHtml = await minifyHtml(newHtml, {
+						html: shouldMinifyHtml === true ? "terser" : shouldMinifyHtml,
+						js: shouldMinifyJS && (shouldMinifyJS === true ? "oxc" : shouldMinifyJS),
+						css: shouldMinifyCSS && (shouldMinifyCSS === true ? "lightningcss" : shouldMinifyCSS),
+					});
 				return newHtml;
 			},
 		},
