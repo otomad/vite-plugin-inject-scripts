@@ -116,9 +116,28 @@ export default ({
 
 				const dom = parseHTML(html);
 				const { document } = dom.window;
-				const entry = dom.window.document.head.querySelector(
-					`script[type="module"][crossorigin]:is([src$="/${entryFile}"], [src$="${entryFile}"])`,
-				);
+				const entry =
+					(() => {
+						const { head } = dom.window.document;
+						const moduleScriptsSelector = 'script[type="module"][crossorigin]';
+						if (typeof entryFile === "string")
+							return head.querySelector<HTMLScriptElement>(
+								`${moduleScriptsSelector}:is([src$="/${entryFile}"], [src$="${entryFile}"])`,
+							);
+						const moduleScripts = head.querySelectorAll<HTMLScriptElement>(moduleScriptsSelector);
+						if (entryFile === true) return moduleScripts[moduleScripts.length - 1];
+						for (const moduleScript of moduleScripts) {
+							const { src } = moduleScript;
+							if (
+								typeof entryFile === "function"
+									? entryFile(src)
+									: isRegExp(entryFile)
+										? entryFile.test(src)
+										: false
+							)
+								return moduleScript;
+						}
+					})() ?? null;
 				const createElement = (tag: Tag) => {
 					const script = document.createElement(tag.tag) as HTMLScriptElement;
 					if (tag.children) script.textContent = tag.children;
@@ -156,4 +175,9 @@ function filterHtmlFilename(filename: string, filter?: Filter): boolean {
 	if (Array.isArray(filter) && filter.length > 0)
 		return filter.some(oneFilter => filterHtmlFilename(filename, oneFilter));
 	return true;
+}
+
+function isRegExp(regexp: unknown): regexp is RegExp {
+	// `regexp instanceof RegExp` is unsafe in different contexts (like across iframes).
+	return Object.prototype.toString.call(regexp) == "[object RegExp]";
 }
