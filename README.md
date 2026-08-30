@@ -1,5 +1,11 @@
 # vite-plugin-inject-scripts
 
+[![npm](https://img.shields.io/npm/v/vite-plugin-inject-scripts?logo=npm&logoColor=%23CB3837&label=npm&labelColor=white&color=%23CB3837)](https://www.npmjs.org/package/vite-plugin-inject-scripts)
+[![GitHub](https://img.shields.io/npm/v/vite-plugin-inject-scripts?logo=github&label=GitHub&color=%23181717)](https://github.com/otomad/vite-plugin-inject-scripts)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)][license-url]
+
+[license-url]: https://opensource.org/licenses/MIT
+
 A [Vite](https://vitejs.dev/) plugin that injects `<script>` tags into the generated HTML files.
 
 ## Overview
@@ -15,32 +21,20 @@ This plugin lets you declare a list of "prior" scripts and decide exactly **wher
 
 It works both during development (`vite serve`) and at build time (`vite build`).
 
-## Comparison with [`vite-plugin-inject-script`](https://www.npmjs.com/package/vite-plugin-inject-script)
-
-The two names differ by a single letter, but the plugins do fundamentally different things:
-
-| | `vite-plugin-inject-script` | `vite-plugin-inject-scripts` (this plugin) |
-| --- | --- | --- |
-| **What it modifies** | The JavaScript **bundle** | The **HTML** document |
-| **Where it injects** | Prepends a JavaScript snippet (as a string) to the top of the entry JS file — the one named by Rollup/Rolldown's `output.entryFileNames` (commonly `index.js`) | Inserts `<script>` elements into `<head>` / `<body>` |
-| **What it injects** | Raw JS source code | `<script>` tags — inline or external, any `type` |
-| **Control over placement** | Single, fixed position (before all entry code) | Four positions (`head-prepend`, `head-append`, `body-prepend`, `body-append`) |
-
-In short:
-
-- `vite-plugin-inject-script` changes the **JavaScript output** — it prepends code into the bundled entry file.
-- `vite-plugin-inject-scripts` changes the **HTML output** — it adds `<script>` tags to the page.
-
-If you need to run some code *before your app's entry module* by injecting it into the JS chunk itself, use `vite-plugin-inject-script`. If you need to add `<script>` tags to the page (polyfills, import maps, speculation rules, analytics, inline config, …), use this plugin.
-
 ## Installation
 
 ```bash
+# npm
 npm install --save-dev vite-plugin-inject-scripts
-# or
-pnpm add -D vite-plugin-inject-scripts
-# or
-yarn add -D vite-plugin-inject-scripts
+
+# yarn
+yarn add --dev vite-plugin-inject-scripts
+
+# pnpm
+pnpm add --save-dev vite-plugin-inject-scripts
+
+# bun
+bun add --dev vite-plugin-inject-scripts
 ```
 
 ## Usage
@@ -57,7 +51,7 @@ export default defineConfig({
 				// A script file, injected at the end of <head>.
 				{ src: "src/polyfills.js" },
 				// An inline module snippet, injected at the start of <body>.
-				{ src: "config.js", source: "window.__APP__ = {};", type: "module", injectTo: "body-prepend", inline: true },
+				{ src: "config.js", source: `window.__APP__ = {};`, type: "module", injectTo: "body-prepend", inline: true },
 			],
 		}),
 	],
@@ -68,21 +62,45 @@ export default defineConfig({
 
 ### `scripts`
 
-Type: `(string | PriorScript)[]` (required)
+**Type:** `(string | PriorScript)[]`\
+**(Required)**
 
 The scripts to inject. Each entry is either a plain path string (equivalent to `{ src: "…" }`) or a [`PriorScript`](#priorscript) object. The order in the array is preserved within each injection position.
 
 ### `entryFile`
 
-Type: `string` — default: `"index.js"`
+**Type:** `string | true | RegExp | ((jsFilePath: string) => boolean)`\
+**Default:** `true`
 
-The name of the entry JS file. It is used to locate the entry `<script type="module" crossorigin src="…">` tag in the document head, so that scripts injected at `head-append` are inserted **before** the entry (and therefore execute first). If no matching entry tag is found, `head-append` scripts are simply appended to the end of `<head>`.
+Selects the entry `<script type="module" crossorigin>` element in `<head>`. Scripts injected at `head-append` are placed immediately **before** it, so they execute first. If no element matches, `head-append` scripts are appended to the end of `<head>`.
+
+- `true` (default): the **last** `<script type="module" crossorigin>` in `<head>`.
+- `string`: the script whose `src` ends with `/name` or equals `name`.
+- `RegExp`: the first script whose `src` matches the pattern.
+- `function`: the first script whose `src` makes the callback return `true`.
 
 ### `minifyHtml`
 
-Type: `boolean` — default: `true`
+**Type:** `boolean | "terser" | "next" | "swc"`\
+**Default:** `true`
 
-Minify the resulting HTML (HTML via [terser](https://github.com/terser/html-minifier-terser), inline JS via [oxc-minify](https://oxc.rs/), CSS via [lightningcss](https://lightningcss.dev/)). Set to `false` to keep the original formatting.
+Minify the HTML output when building. `true` uses the default engine `terser` ([html-minifier-terser](https://github.com/terser/html-minifier-terser)). Pass an engine name to use a different engine — you must install that engine yourself. Set `false` to disable HTML minification (inline `<script>` / `<style>` content is then left untouched as well).
+
+### `minifyJS`
+
+**Type:** `boolean | "oxc" | "swc" | "esbuild" | "terser"`\
+**Default:** `true`
+
+Minify the JavaScript output when building. `true` uses the default engine `oxc` ([oxc-minify](https://oxc.rs/)). Pass an engine name to use a different engine — you must install that engine yourself. This also controls the minifier used for inline `<script>` content during HTML minification. Set `false` to disable.
+
+> **Note:** JSON scripts (`.json`, `importmap`, `speculationrules`, …) are always minified and are not affected by this option.
+
+### `minifyCSS`
+
+**Type:** `boolean | "lightningcss" | "esbuild" | "cssnano" | "clean-css" | "csso"`\
+**Default:** `true`
+
+Choose the CSS minification engine used during HTML minification (for inline `<style>` content). `true` uses the default engine `lightningcss`. Pass an engine name to use a different engine — you must install that engine yourself. Set `false` to disable.
 
 ## `PriorScript`
 
@@ -90,7 +108,7 @@ Each script object accepts the following fields:
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `src` | `string` | — | Path to the script (`js` / `ts` / `tsx` / `jsx` / `json`), resolved from Vite's `root`. When `source` is set, the file is not read and `src` is only used to derive the output file name/extension. |
+| `src` | `string` | — | Path to the script (`js` / `ts` / `jsx` / `tsx` / `json`), resolved from Vite's `root`. When `source` is set, the file is not read and `src` is only used to derive the output file name/extension. |
 | `source` | `string` | — | The script content. When set, it overrides the file read from `src`. |
 | `type` | `string` | `"classic"` | See [script types](#type). |
 | `injectTo` | `"head-prepend" \| "head-append" \| "body-prepend" \| "body-append"` | `"head-append"` | Where to insert the `<script>` tag. |
@@ -109,6 +127,9 @@ Each script object accepts the following fields:
 | *(any other)* | `string` | — | Any additional attribute is passed through to the `<script>` tag. |
 
 ### `type`
+
+See [`HTMLScriptElement.supports()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/supports_static) static method.
+
 
 | Value | Emitted `type` | Notes |
 | --- | --- | --- |
@@ -136,9 +157,10 @@ injectScripts({
 ## How it works
 
 - **Resolving files**: `src` is resolved relative to Vite's `root`. Setting `source` skips the file read.
-- **Transformations** (in order): `modify` → IIFE wrapping (`type: "iife"`) → TypeScript compilation (`.ts` / `.tsx` / `.mts` / `.cts`) → JS minification (build only, skipped for JSON).
-- **Development**: non-inline scripts are served from a `/@inject-scripts/…` route.
-- **Build**: non-inline scripts are emitted as assets (`.js` / `.json`) and referenced by their hashed file name; JSON content is left unminified.
+- **Transformations** (in order): `modify` → IIFE wrapping (`type: "iife"`) → TypeScript compilation (`.ts` / `.tsx` / `.mts` / `.cts`) → minification (build only).
+- **Minification**: controlled by [`minifyHtml`](#minifyhtml), [`minifyJS`](#minifyjs) and [`minifyCSS`](#minifycss); JSON scripts are always minified.
+- **Development**: non-inline scripts are served from a `/@inject-scripts/…` virtual route.
+- **Build**: non-inline scripts are emitted as assets (`.js` / `.json`) and referenced by their hashed file name.
 
 ## Examples
 
@@ -192,6 +214,22 @@ injectScripts({
 });
 ```
 
+## Comparison with [`vite-plugin-inject-script`](https://www.npmjs.com/package/vite-plugin-inject-script)
+
+The two names differ by a single letter, but the plugins do fundamentally different things:
+
+| | `vite-plugin-inject-script` | `vite-plugin-inject-scripts` (this plugin) |
+| --- | --- | --- |
+| **What it modifies** | The JavaScript **bundle** | The **HTML** document |
+| **Where it injects** | Prepends a JavaScript snippet (as a string) to the top of the entry JS file — the one named by Rollup/Rolldown's `output.entryFileNames` (commonly `index.js`) | Inserts `<script>` elements into `<head>` / `<body>` |
+| **What it injects** | Raw JS source code | `<script>` tags — inline or external, any `type` |
+| **Control over placement** | Single, fixed position (before all entry code) | Four positions (`head-prepend`, `head-append`, `body-prepend`, `body-append`) |
+
+In short:
+
+- `vite-plugin-inject-script` changes the **JavaScript output** — it prepends code into the bundled entry file.
+- `vite-plugin-inject-scripts` changes the **HTML output** — it adds `<script>` tags to the page.
+
 ## License
 
-[MIT](./LICENSE)
+[MIT](LICENSE)
