@@ -4,7 +4,7 @@ import { compileTypeScript, minifyHtml, minifyJavaScript, wrapIife, minifyJson }
 import { parseHTML } from "linkedom";
 import type { Plugin, ResolvedConfig } from "vite";
 import type { Filter, PriorScript, Tag, PluginOptions } from "./type.js";
-export type { PriorScript, PluginOptions };
+export type { PriorScript, PluginOptions } from "./type.js";
 
 export default ({
 	scripts: scripts_,
