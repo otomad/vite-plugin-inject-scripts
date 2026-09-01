@@ -35,6 +35,12 @@ export default ({
 				const isJson =
 					["importmap", "speculationrules", "application/json", "text/json"].includes(script.type) ||
 					path.extname(script.src).toLowerCase() === ".json";
+				const scriptType =
+					script.type === "module"
+						? "module"
+						: script.type === "classic" || script.type === "script" || script.type === "iife"
+							? "classic"
+							: "unknown";
 
 				let source = script.source || readFileSync(resolve(script.src), "utf-8");
 				if (script.modify) source = script.modify(source);
@@ -43,7 +49,11 @@ export default ({
 				if (!isDev) {
 					if (!isJson) {
 						if (shouldMinifyJS)
-							source = minifyJavaScript(source, shouldMinifyJS === true ? "oxc" : shouldMinifyJS);
+							source = minifyJavaScript(
+								source,
+								shouldMinifyJS === true ? "oxc" : shouldMinifyJS,
+								scriptType,
+							);
 					} else source = minifyJson(source);
 				}
 
