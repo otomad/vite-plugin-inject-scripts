@@ -130,7 +130,6 @@ Each script object accepts the following fields:
 
 See [`HTMLScriptElement.supports()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/supports_static) static method.
 
-
 | Value | Emitted `type` | Notes |
 | --- | --- | --- |
 | `"classic"` / `"script"` | *(none)* | A classic script. |

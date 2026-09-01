@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import path, { posix, resolve as resolve_ } from "node:path";
+import { isRegExp } from "node:util/types";
 import { compileTypeScript, minifyHtml, minifyJavaScript, wrapIife, minifyJson } from "js-build-utils";
 import { parseHTML } from "linkedom";
 import type { Plugin, ResolvedConfig } from "vite";
-import type { Filter, PriorScript, Tag, PluginOptions } from "./type.js";
+import type { Filter, PriorScript, Tag, PluginOptions, ScriptType } from "./type.js";
 export type { PriorScript, PluginOptions } from "./type.js";
 
 export default ({
@@ -32,19 +33,19 @@ export default ({
 				script.src = script.src.trim();
 				script.type ??= "classic";
 				script.injectTo ??= "head-append";
+				script.strict ??= false;
 				const isJson =
 					["importmap", "speculationrules", "application/json", "text/json"].includes(script.type) ||
 					path.extname(script.src).toLowerCase() === ".json";
 				const scriptType =
-					script.type === "module"
-						? "module"
-						: script.type === "classic" || script.type === "script" || script.type === "iife"
-							? "classic"
-							: "unknown";
+					script.type === "module" ? "module" : isClassicScript(script.type) ? "classic" : "unknown";
 
 				let source = script.source || readFileSync(resolve(script.src), "utf-8");
 				if (script.modify) source = script.modify(source);
-				if (script.type === "iife") source = wrapIife(source);
+				// if (script.type === "iife") source = wrapIife(source);
+				// else if (script.type === "block") source = `{${source}}`;
+				if ((["iife", "block", "iifearrow", "iife-arrow"] as const).includes(script.type))
+					source = wrapIife(source, { strict: script.strict, type: script.type === "iifearrow" || script.type === "iife-arrow" ? "arrow" : script.type })
 				if (script.src.match(/\.[cm]?tsx?/i)) source = compileTypeScript(source);
 				if (!isDev) {
 					if (!isJson) {
@@ -108,7 +109,7 @@ export default ({
 
 						if (blocking) attrs.blocking = blocking.join(" ");
 						if (!inline) attrs.src = bundles.get(src);
-						attrs.type = type === "classic" || type === "script" || type === "iife" ? undefined : type;
+						attrs.type = isClassicScript(type) ? undefined : type;
 
 						const result: Tag = {
 							tag: "script",
@@ -178,6 +179,9 @@ export default ({
 	};
 };
 
+/**
+ * Filter HTML filename.
+ */
 function filterHtmlFilename(filename: string, filter?: Filter): boolean {
 	if (typeof filter === "function") return filter(filename);
 	if (filter instanceof RegExp) return filter.test(filename);
@@ -187,7 +191,17 @@ function filterHtmlFilename(filename: string, filter?: Filter): boolean {
 	return true;
 }
 
-function isRegExp(regexp: unknown): regexp is RegExp {
-	// `regexp instanceof RegExp` is unsafe in different contexts (like across iframes).
-	return Object.prototype.toString.call(regexp) == "[object RegExp]";
+const classicScripts = [
+	"classic",
+	"script",
+	"iife",
+	"iifearrow",
+	"iife-arrow",
+	"block",
+] as const satisfies readonly ScriptType[];
+/**
+ * Check if the specific script type is actually a classic script in a `<script>` type attribute.
+ */
+function isClassicScript(scriptType: ScriptType): scriptType is (typeof classicScripts)[number] {
+	return (classicScripts as readonly ScriptType[]).includes(scriptType);
 }

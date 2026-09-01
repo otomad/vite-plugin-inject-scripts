@@ -68,13 +68,33 @@ export interface PriorScript {
 	/**
 	 * - `"classic" | "script"`: Classic script.
 	 * - `"module"`: JavaScript module.
-	 * - `"iife"`: Wrap the script content with IIFE, and mark as "use strict".
+	 * - `"iife"`: Wrap the script content with IIFE.
+	 * - `"iifearrow" | "iife-arrow"`: Wrap the script content with IIFE by an arrow function.
+	 * - `"block"`: Wrap the script content with a pair of curly braces.
 	 * - `"importmap"`: Import map (JSON).
 	 * - `"speculationrules"`: Speculation rules (JSON).
 	 * - Others - Directly pass to the type attribute.
 	 * @default "classic"
 	 */
-	type?: "classic" | "script" | "module" | "iife" | "importmap" | "speculationrules" | (string & {});
+	type?:
+		| "classic"
+		| "script"
+		| "module"
+		| "iife"
+		| "iifearrow"
+		| "iife-arrow"
+		| "block"
+		| "importmap"
+		| "speculationrules"
+		| (string & {});
+	/**
+	 * Prepend "use strict" directive?
+	 *
+	 * The option is effective only when the `type` option is `"classic"`, `"script"`, `"iife"`, `"iifearrow"`, `"iife-arrow"`, or `"block"`.
+	 *
+	 * @default false
+	 */
+	strict?: boolean;
 	/**
 	 * Select where to insert the script.
 	 * @default "head-append"
@@ -115,3 +135,5 @@ export interface PriorScript {
 	/** Any other custom attributes. */
 	[x: string]: any;
 }
+
+export type ScriptType = PriorScript["type"];
