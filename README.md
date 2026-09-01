@@ -111,6 +111,7 @@ Each script object accepts the following fields:
 | `src` | `string` | — | Path to the script (`js` / `ts` / `jsx` / `tsx` / `json`), resolved from Vite's `root`.<br>When `source` is set, the file is not read and `src` is only used for the output file name/extension;<br>When `source` is set and `inline` is `true`, `src` is only checked for a `.json` extension to treat the content as JSON. |
 | `source` | `string` | — | Override the script content with an inline string.<br>**Not recommended** unless the code is very simple — prefer a separate file referenced by `src`, since inline content loses editor highlighting and autocompletion. |
 | `type` | `string` | `"classic"` | See [script types](#type). |
+| `strict` | `boolean` | `false` | Prepend a `"use strict"` directive. Only effective when `type` is `"classic"`, `"script"`, `"iife"`, `"iifearrow"`, `"iife-arrow"`, or `"block"`. |
 | `injectTo` | `"head-prepend" \| "head-append" \| "body-prepend" \| "body-append"` | `"head-append"` | Where to insert the `<script>` tag. |
 | `modify` | `(code: string) => string` | — | Transform the source before it is compiled/minified. |
 | `filterHtml` | `Filter` | — | Only inject into matching HTML files. See [filtering](#filtering). |
@@ -132,11 +133,13 @@ See [`HTMLScriptElement.supports()`](https://developer.mozilla.org/en-US/docs/We
 
 | Value | Emitted `type` | Notes |
 | --- | --- | --- |
-| `"classic"` / `"script"` | *(none)* | A classic script. |
-| `"module"` | `type="module"` | A JavaScript module. |
-| `"iife"` | *(none)* | The content is wrapped in an IIFE and marked `"use strict"`. |
-| `"importmap"` | `type="importmap"` | An import map (JSON). |
-| `"speculationrules"` | `type="speculationrules"` | Speculation rules (JSON). |
+| `"classic"` / `"script"` | *(none)* | A classic script. Every declared variable and function becomes a global, and `import`/`export` cannot be used. |
+| `"module"` | `type="module"` | A JavaScript module. Declared variables and functions are inaccessible from outside, and `import`/`export` can be used. With `inline: true`, `export` won't error but is meaningless. |
+| `"iife"` | *(none)* | Wraps the content in an IIFE (self-invoking function). Declared variables and functions are inaccessible from outside, and `import`/`export` cannot be used. Unlike `"module"` — which is deferred and non-blocking, so it can run only after the DOM has loaded even when injected before `<body>` — an IIFE runs synchronously as the parser reaches it. Use `"iife"` (or `"iifearrow"` / `"block"`) to run code before the DOM finishes loading (e.g. set a background color early) without leaking variables. |
+| `"iifearrow"` / `"iife-arrow"` | *(none)* | Same as `"iife"`, but uses an arrow function instead of an anonymous function, so the compiled output is a few bytes smaller. ES6+ only. |
+| `"block"` | *(none)* | Wraps the content in a block scope (`{ … }`). `let`, `const`, `class` and `using` declarations do not leak; `var` does; `function` declarations leak unless `strict` is set. A single pair of braces already keeps most declarations from leaking, so it uses fewer bytes than `"iife"` / `"iifearrow"` — preferred for `inline: true` when the code doesn't use `var`. ES6+ only. |
+| `"importmap"` | `type="importmap"` | An import map (JSON) that controls which URLs are fetched by JavaScript `import` statements and `import()` expressions, through its optional `imports` and `scopes` keys. |
+| `"speculationrules"` | `type="speculationrules"` | Speculation rules (JSON) that let the browser speculatively `prefetch` or `prerender` documents matching URL patterns, to speed up subsequent navigations. |
 | any other string | `type="…"` | Passed through verbatim. |
 
 ### Filtering
@@ -156,7 +159,7 @@ injectScripts({
 ## How it works
 
 - **Resolving files**: `src` is resolved relative to Vite's `root`. Setting `source` skips the file read.
-- **Transformations** (in order): `modify` → IIFE wrapping (`type: "iife"`) → TypeScript compilation (`.ts` / `.tsx` / `.mts` / `.cts`) → minification (build only).
+- **Transformations** (in order): `modify` → IIFE/block wrapping (`type: "iife"` / `"iifearrow"` / `"iife-arrow"` / `"block"`, with `strict`) → TypeScript compilation (`.ts` / `.tsx` / `.mts` / `.cts`) → minification (build only).
 - **Minification**: controlled by [`minifyHtml`](#minifyhtml), [`minifyJS`](#minifyjs) and [`minifyCSS`](#minifycss); JSON scripts are always minified.
 - **Development**: non-inline scripts are served from a `/@inject-scripts/…` virtual route.
 - **Build**: non-inline scripts are emitted as assets (`.js` / `.json`) and referenced by their hashed file name.

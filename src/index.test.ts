@@ -300,7 +300,7 @@ describe("source transforms", () => {
 	it("wraps iife type with use strict", async () => {
 		const { render } = makeRenderer({
 			minifyHtml: false,
-			scripts: [{ src: "foo.js", source: "console.log(1);", inline: true, type: "iife" }],
+			scripts: [{ src: "foo.js", source: "console.log(1);", inline: true, type: "iife", strict: true }],
 		});
 		const out = await render(HTML);
 		expect(out).toContain('"use strict"');

@@ -121,6 +121,7 @@ export default ({
 							injectTo,
 							modify: _modify,
 							isJson: _isJson,
+							strict: _strict,
 							filterHtml,
 							inline,
 							blocking,
