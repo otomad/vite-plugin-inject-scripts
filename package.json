@@ -1,6 +1,6 @@
 {
 	"name": "vite-plugin-inject-scripts",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "A Vite plugin that injects `<script>` tags into the generated HTML files",
 	"homepage": "https://github.com/otomad/vite-plugin-inject-scripts#readme",
 	"bugs": {
