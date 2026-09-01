@@ -35,18 +35,40 @@ export default ({
 				script.injectTo ??= "head-append";
 				script.strict ??= false;
 				const isJson =
-					["importmap", "speculationrules", "application/json", "text/json"].includes(script.type) ||
-					path.extname(script.src).toLowerCase() === ".json";
+					(
+						[
+							"importmap",
+							"speculationrules",
+							"application/json",
+							"text/json",
+						] as const satisfies readonly ScriptType[]
+					).includes(script.type) || path.extname(script.src).toLowerCase() === ".json";
 				const scriptType =
-					script.type === "module" ? "module" : isClassicScript(script.type) ? "classic" : "unknown";
+					script.type === "module" ? "module" : classicScripts.includes(script.type) ? "classic" : "unknown";
 
 				let source = script.source || readFileSync(resolve(script.src), "utf-8");
 				if (script.modify) source = script.modify(source);
-				// if (script.type === "iife") source = wrapIife(source);
-				// else if (script.type === "block") source = `{${source}}`;
-				if ((["iife", "block", "iifearrow", "iife-arrow"] as const).includes(script.type))
-					source = wrapIife(source, { strict: script.strict, type: script.type === "iifearrow" || script.type === "iife-arrow" ? "arrow" : script.type })
-				if (script.src.match(/\.[cm]?tsx?/i)) source = compileTypeScript(source);
+				if (
+					(["iife", "block", "iifearrow", "iife-arrow"] as const satisfies readonly ScriptType[]).includes(
+						script.type,
+					)
+				)
+					source = wrapIife(source, {
+						strict: script.strict,
+						type: (["iifearrow", "iife-arrow"] as const satisfies readonly ScriptType[]).includes(
+							script.type,
+						)
+							? "arrow"
+							: script.type === "iife"
+								? "function"
+								: script.type,
+					});
+				else if (
+					(["classic", "script"] as const satisfies readonly ScriptType[]).includes(script.type) &&
+					script.strict
+				)
+					source = '"use strict";\n' + source;
+				if (script.src.match(/\.[cm]?tsx?(?=$|\?)/i)) source = compileTypeScript(source);
 				if (!isDev) {
 					if (!isJson) {
 						if (shouldMinifyJS)
@@ -90,7 +112,7 @@ export default ({
 
 		transformIndexHtml: {
 			order: "post",
-			async handler(html, { filename, path }) {
+			async handler(html, { filename }) {
 				const tags = scripts
 					.map(script => {
 						const {
@@ -109,7 +131,7 @@ export default ({
 
 						if (blocking) attrs.blocking = blocking.join(" ");
 						if (!inline) attrs.src = bundles.get(src);
-						attrs.type = isClassicScript(type) ? undefined : type;
+						attrs.type = classicScripts.includes(type) ? undefined : type;
 
 						const result: Tag = {
 							tag: "script",
@@ -199,9 +221,3 @@ const classicScripts = [
 	"iife-arrow",
 	"block",
 ] as const satisfies readonly ScriptType[];
-/**
- * Check if the specific script type is actually a classic script in a `<script>` type attribute.
- */
-function isClassicScript(scriptType: ScriptType): scriptType is (typeof classicScripts)[number] {
-	return (classicScripts as readonly ScriptType[]).includes(scriptType);
-}
