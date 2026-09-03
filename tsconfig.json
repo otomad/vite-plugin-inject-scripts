@@ -109,7 +109,7 @@
 	},
 	"include": [
 		"src/**/*",
-		"types.d.ts",
+		"dev.d.ts",
 	],
 	"exclude": [
 		"dist/**/*",
